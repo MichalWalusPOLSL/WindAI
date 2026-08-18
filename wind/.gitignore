@@ -1,0 +1,30 @@
+# Project-level ignores. The repository root carries the generic Python
+# template (caches, build artefacts, .venv); this file covers what is specific
+# to the experiment.
+
+# Input data. data/ is normally a directory junction to the dataset folder
+# outside the repository, and git follows a junction like an ordinary
+# directory, so every file under it is excluded regardless of extension:
+# the exports are ~11 MB each and are frozen inputs, not source. The directory
+# itself is not tracked either: you create it as a junction or a plain folder
+# and drop the exports in, as described in README.
+data/*
+
+# Generated results. run.py rewrites predictions from the config grid and the
+# tables are derived from them, so neither is source. The directories stay in
+# the tree because README documents them as the output layout.
+results/predictions/*
+results/tables/*
+!results/predictions/.gitkeep
+!results/tables/.gitkeep
+
+# Local environment. Pipfile and Pipfile.lock ARE committed: the lock is what
+# makes the run reproducible on another machine.
+.venv/
+.env
+
+# Editors and Windows shell noise
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

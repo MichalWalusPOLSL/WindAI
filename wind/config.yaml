@@ -1,0 +1,27 @@
+source: prepared
+data_dir: data
+predictions_dir: results/predictions
+tables_dir: results/tables
+
+add_tendency: true
+
+locations:
+  - hel
+  - suwalki
+  - katowice
+
+models:
+  - rf
+  - gbt
+  - knn
+  - logreg
+  - xgb
+
+preprocessing:
+  - raw
+
+horizons:
+  - 0
+
+splitters:
+  - loyo
