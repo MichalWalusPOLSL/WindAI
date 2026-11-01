@@ -1,0 +1,25 @@
+source: prepared
+data_dir: data
+predictions_dir: results/horizons
+tables_dir: results/tables
+
+add_tendency: true
+
+locations:
+  - hel
+  - suwalki
+  - katowice
+
+models:
+  - xgb
+
+preprocessing: [raw]
+features: [base]
+
+horizons:
+  - 1
+  - 3
+  - 6
+
+splitters:
+  - loyo

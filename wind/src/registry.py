@@ -105,15 +105,17 @@ class LabelEncoded(ClassifierMixin, BaseEstimator):
 
     XGBoost refuses the Beaufort strings ("Bf0-1", ...) that every other model,
     metric and prediction file uses, so the encoding is hidden here instead of
-    leaking a second label convention into the stored predictions.
+    leaking a second label convention into the stored predictions. Sample
+    weights pass through to the estimator, so class weighting reaches it too.
     """
 
     def __init__(self, estimator=None):
         self.estimator = estimator
 
-    def fit(self, X, y):
+    def fit(self, X, y, sample_weight=None):
         self.encoder_ = LabelEncoder().fit(y)
-        self.estimator_ = clone(self.estimator).fit(X, self.encoder_.transform(y))
+        weights = {} if sample_weight is None else {"sample_weight": sample_weight}
+        self.estimator_ = clone(self.estimator).fit(X, self.encoder_.transform(y), **weights)
         self.classes_ = self.encoder_.classes_
         return self
 

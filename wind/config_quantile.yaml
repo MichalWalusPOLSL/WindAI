@@ -1,0 +1,26 @@
+source: raw
+data_dir: data_raw
+predictions_dir: results/quantile
+tables_dir: results/tables
+
+add_tendency: true
+
+locations:
+  - hel
+  - suwalki
+  - katowice
+
+models:
+  - xgb
+  - rf
+  - logreg
+
+preprocessing: [scaled]
+features: [base]
+classes: [quantile]
+
+horizons:
+  - 0
+
+splitters:
+  - loyo

@@ -1,0 +1,23 @@
+source: prepared
+data_dir: data
+predictions_dir: results/transfer
+tables_dir: results/tables
+
+add_tendency: true
+
+mode: transfer
+pairs: all
+
+locations:
+  - hel
+  - suwalki
+  - katowice
+
+models:
+  - xgb
+
+preprocessing: [raw]
+features: [base]
+
+horizons:
+  - 0

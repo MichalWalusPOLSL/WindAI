@@ -10,11 +10,22 @@
 # and drop the exports in, as described in README.
 data/*
 
+# Untouched Open-Meteo exports with the wind speed, read by the configs that
+# relabel the target (source: raw). Frozen inputs, like data/.
+data_raw/*
+
 # Generated results. run.py rewrites predictions from the config grid and the
 # tables are derived from them, so neither is source. The directories stay in
-# the tree because README documents them as the output layout.
+# the tree because README documents them as the output layout. Every
+# experiment besides the dashboard grid writes to a folder of its own.
 results/predictions/*
 results/tables/*
+results/archive_wavelet_centered/
+results/ablation_blh/
+results/balanced/
+results/horizons/
+results/quantile/
+results/transfer/
 !results/predictions/.gitkeep
 !results/tables/.gitkeep
 
