@@ -1,0 +1,808 @@
+<style>
+  .wb { display: flex; flex-direction: column; gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); color: var(--color-fg); }
+  .wb-head { display: flex; flex-direction: column; gap: var(--cds-gap-sm); }
+  .wb-title { margin: 0; font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); text-wrap: balance; }
+  .wb-takeaway { margin: 0; font-size: var(--cds-font-size-body); line-height: 1.5; max-width: 75ch; min-height: 3em; }
+  .wb-defs { margin: 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); line-height: 1.5; max-width: 95ch; }
+  .wb-filters { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); align-items: flex-end; }
+  .wb-field { display: flex; flex-direction: column; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .wb-field select { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-xs) var(--cds-pad-sm); }
+  .wb-seg { display: inline-flex; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: hidden; }
+  .wb-seg button { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg-muted); background: var(--color-panel); border: 0; padding: var(--cds-pad-xs) var(--cds-pad-md); cursor: pointer; }
+  .wb-seg button + button { border-left: 1px solid var(--color-border-line); }
+  .wb-seg button[aria-pressed="true"] { color: var(--color-bg); background: var(--color-fg); }
+  .wb button:focus-visible, .wb tr:focus-visible, .wb select:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+
+  .wb-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--cds-gap-md); min-height: 9rem; }
+  .wb-tile { font: inherit; color: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: var(--cds-gap-xs); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); }
+  .wb-tile[aria-pressed="true"] { border-color: var(--color-fg); box-shadow: inset 0 0 0 1px var(--color-fg); }
+  .wb-tile-loc { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); letter-spacing: .04em; text-transform: uppercase; }
+  .wb-big { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: calc(var(--cds-font-size-title) * 1.3); line-height: 1.1; }
+  .wb-tile-run { font-size: var(--cds-font-size-body); }
+  .wb-tile-base { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; }
+
+  .wb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: var(--cds-gap-md); }
+  .wb-card { position: relative; min-width: 0; display: flex; flex-direction: column; gap: var(--cds-gap-sm); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); }
+  .wb-card h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+  .wb-note { margin: 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); line-height: 1.45; }
+  .wb-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .wb-legend span { display: inline-flex; align-items: center; gap: var(--cds-gap-xs); }
+  .wb-sw { display: inline-block; width: .625rem; height: .625rem; border-radius: 50%; flex: none; }
+
+  .wb-tablewrap { overflow: auto; max-height: 27rem; min-height: 12rem; }
+  .wb-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+  .wb-table th { position: sticky; top: 0; z-index: 1; background: var(--color-panel); text-align: left; font-weight: var(--cds-font-weight-medium); border-bottom: 1px solid var(--color-border-line); padding: 0; white-space: nowrap; }
+  .wb-table th.num, .wb-table td.num { text-align: right; }
+  .wb-table th button { font: inherit; color: var(--color-fg-muted); background: none; border: 0; cursor: pointer; padding: var(--cds-pad-xs) var(--cds-pad-sm); width: 100%; text-align: inherit; }
+  .wb-table th[aria-sort] button { color: var(--color-fg); }
+  .wb-table td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+  .wb-table tbody tr { cursor: pointer; }
+  .wb-table tbody tr:hover td { background: color-mix(in srgb, var(--color-fg) 4%, transparent); }
+  .wb-table tbody tr[aria-selected="true"] td { background: color-mix(in srgb, var(--color-fg) 9%, transparent); }
+  .wb-table tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 3px 0 0 var(--color-fg); }
+  .wb-cellbar { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--cds-gap-xs); }
+  .wb-cellbar i { display: inline-block; height: .5rem; border-radius: 4px; }
+  .wb-cellbar .track { width: 3.5rem; display: inline-flex; justify-content: flex-start; }
+
+  .wb-heat { display: grid; grid-template-columns: max-content repeat(4, minmax(0, 1fr)); gap: 2px; min-height: 14rem; align-content: start; }
+  .wb-heat-h { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); padding: var(--cds-pad-xs); overflow-wrap: anywhere; text-align: center; align-self: end; }
+  .wb-heat-r { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); padding-right: var(--cds-pad-sm); align-self: center; }
+  .wb-heat button { font: inherit; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; border: 0; border-radius: 4px; height: 2.5rem; cursor: pointer; }
+  .wb-heat button[aria-pressed="true"] { outline: 2px solid var(--color-fg); outline-offset: -2px; font-weight: 600; }
+  .wb-scale { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--cds-gap-sm); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); padding-top: var(--cds-pad-sm); font-variant-numeric: tabular-nums; }
+  .wb-scale i { flex: 1; height: .5rem; border-radius: 4px; }
+
+  .wb-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: var(--cds-gap-lg); min-height: 14rem; }
+  .wb-panel { min-width: 0; }
+  .wb-panel h3 { margin: 0 0 var(--cds-gap-xs); font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); }
+  .wb-svg { display: block; overflow: visible; }
+  .wb-svg text { font-family: var(--font-anthropic-sans); font-size: var(--cds-font-size-caption); fill: var(--color-fg-muted); font-variant-numeric: tabular-nums; }
+  .wb-svg .grid line { stroke: var(--cds-chart-grid); }
+  .wb-svg .axis path, .wb-svg .axis line { stroke: var(--cds-chart-axis); }
+  .wb-svg .lab-on { fill: var(--color-fg); font-weight: 600; }
+
+  .wb-chart { position: relative; min-height: 16rem; }
+  .wb-cls { display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-height: 16rem; }
+  .wb-cls-row { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: var(--cds-gap-sm); align-items: center; }
+  .wb-cls-lab { display: flex; flex-direction: column; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; }
+  .wb-cls-lab b { color: var(--color-fg); font-size: var(--cds-font-size-body); }
+  .wb-cls-bars { display: flex; flex-direction: column; gap: 3px; }
+  .wb-bar { display: flex; align-items: center; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; color: var(--color-fg-muted); }
+  .wb-bar .track { flex: 1; min-width: 0; }
+  .wb-bar i { display: block; height: .5rem; border-radius: 4px; min-width: 2px; }
+  .wb-bar span { width: 2.75rem; text-align: right; flex: none; }
+
+  .wb-conf { display: grid; grid-template-columns: max-content repeat(6, minmax(0, 1fr)); gap: 2px; min-height: 18rem; align-content: start; max-width: 46rem; }
+  .wb-conf-h { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); text-align: center; padding: var(--cds-pad-xs) 0; }
+  .wb-conf-r { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); padding-right: var(--cds-pad-sm); align-self: center; }
+  .wb-conf-c { height: 2.5rem; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+  .wb-conf-c.diag { font-weight: 600; outline: 1.5px solid var(--color-fg); outline-offset: -1.5px; }
+  .wb-axis-t { grid-column: 2 / -1; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); text-align: center; }
+
+  .wb-tip { position: absolute; z-index: 5; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); display: flex; flex-direction: column; gap: 2px; min-width: 9rem; }
+  .wb-tip-title { color: var(--cds-text-secondary); margin-bottom: 2px; }
+  .wb-tip-row { display: flex; align-items: center; gap: var(--cds-gap-xs); }
+  .wb-tip-name { flex: 1; }
+  .wb-tip-val { font-variant-numeric: tabular-nums; font-weight: 600; padding-left: var(--cds-pad-sm); }
+
+  .wb-fail { display: flex; align-items: center; justify-content: center; gap: var(--cds-gap-xs); min-height: inherit; height: 100%; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); grid-column: 1 / -1; }
+  .wb-fail i { width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+  .wb [data-dash-source-state=empty] { color: transparent; }
+  .wb [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+</style>
+
+<div class="wb" id="wb">
+  <header class="wb-head" id="top">
+    <h1 class="wb-title">Skuteczność modeli siły wiatru</h1>
+    <p class="wb-takeaway dash-skeleton" id="takeaway"></p>
+    <div class="wb-filters" id="filters">
+      <label class="wb-field" for="wb-loc">Lokalizacja<select id="wb-loc"></select></label>
+      <div class="wb-field"><span id="wb-feat-label">Zestaw cech</span>
+        <div class="wb-seg" role="group" aria-labelledby="wb-feat-label">
+          <button type="button" data-feat="base">bazowe</button>
+          <button type="button" data-feat="wavelet">bazowe + falkowe</button>
+        </div>
+      </div>
+      <label class="wb-field" for="wb-metric">Metryka<select id="wb-metric"></select></label>
+    </div>
+    <p class="wb-defs">Kappa Cohena mierzy zgodność z prawdą ponad to, co dałby przypadek (0 = losowo, 1 = idealnie) i jest główną miarą rankingu. Macro F1 to średnia F1 z klas Beauforta, w której rzadkie klasy ważą tyle co częste. Zero-R to trafność modelu, który zawsze wskazuje najczęstszą klasę. Walidacja: leave-one-year-out, czyli każdy rok po kolei jest zbiorem testowym.</p>
+  </header>
+
+  <section class="wb-tiles dash-skeleton" id="best" aria-label="Najlepszy model w każdej lokalizacji" data-source="summary"></section>
+
+  <div class="wb-grid">
+    <article class="wb-card" id="ranking">
+      <h2>Ranking przebiegów</h2>
+      <p class="wb-note" id="rank-note">Kliknij wiersz, żeby zobaczyć szczegóły przebiegu w kartach niżej.</p>
+      <div class="wb-tablewrap">
+        <table class="wb-table" id="rank-table" data-source="summary" data-row-key="run">
+          <thead><tr>
+            <th data-field="model"><button type="button" data-sort="model">Model</button></th>
+            <th data-field="preprocessing"><button type="button" data-sort="preprocessing">Preprocessing</button></th>
+            <th class="num" data-field="kappa"><button type="button" data-sort="kappa">Kappa</button></th>
+            <th class="num" data-field="accuracy"><button type="button" data-sort="accuracy">Trafność</button></th>
+            <th class="num" data-field="macro_f1"><button type="button" data-sort="macro_f1">Macro F1</button></th>
+            <th class="num" data-field="auc_ovr"><button type="button" data-sort="auc_ovr">AUC</button></th>
+            <th class="num" data-field="kappa_fold_std"><button type="button" data-sort="kappa_fold_std" title="Odchylenie standardowe kappy między latami">σ kappy</button></th>
+          </tr></thead>
+          <tbody class="dash-skeleton" id="rank-body"></tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="wb-card" id="heatmap">
+      <h2>Model × preprocessing</h2>
+      <p class="wb-note" id="heat-note">Ciemniejsze pole to wyższy wynik w wybranej lokalizacji i zestawie cech. Kliknij pole, żeby je wybrać.</p>
+      <div class="wb-heat dash-skeleton" id="heat" data-source="summary"></div>
+    </article>
+  </div>
+
+  <article class="wb-card" id="wavelet">
+    <h2>Czy cechy falkowe pomagają?</h2>
+    <p class="wb-note" id="dumb-note">Najlepszy wariant preprocessingu każdego modelu: bez cech falkowych i z nimi. Wspólna skala dla wszystkich lokalizacji.</p>
+    <div class="wb-legend" id="dumb-legend"></div>
+    <div class="wb-panels dash-skeleton" id="dumb" data-source="best_by_features"></div>
+  </article>
+
+  <div class="wb-grid">
+    <article class="wb-card" id="years">
+      <h2>Stabilność w kolejnych latach</h2>
+      <p class="wb-note" id="fold-note">Kappa w każdym roku testowym.</p>
+      <div class="wb-chart dash-skeleton" id="fold-chart" data-source="folds"></div>
+    </article>
+
+    <article class="wb-card" id="classes">
+      <h2>Skuteczność w klasach Beauforta</h2>
+      <p class="wb-note" id="cls-note">Recall: jaka część godzin danej klasy została rozpoznana. Precyzja: jaka część wskazań tej klasy była trafna.</p>
+      <div class="wb-legend" id="cls-legend"></div>
+      <div class="wb-cls dash-skeleton" id="cls" data-source="per_class"></div>
+    </article>
+  </div>
+
+  <article class="wb-card" id="confusion">
+    <h2>Macierz pomyłek</h2>
+    <p class="wb-note" id="conf-note">Wiersze to klasa rzeczywista, kolumny to klasa przewidziana. Procent to udział godzin danej klasy rzeczywistej.</p>
+    <div class="wb-conf dash-skeleton" id="conf" data-source="confusion"></div>
+  </article>
+</div>
+
+<script>
+dash.calc('best_by_features', {
+  inputs: ['summary'],
+  title: 'Najlepszy preprocessing modelu',
+  description: 'Dla każdej lokalizacji, modelu i zestawu cech: najwyższa wartość każdej metryki spośród wariantów preprocessingu.',
+  fn: (summary) => {
+    const metrics = ['kappa', 'accuracy', 'macro_f1', 'auc_ovr'];
+    const best = new Map();
+    for (const r of summary) {
+      const group = `${r.location}|${r.model}|${r.features}`;
+      const row = best.get(group) ?? { group, location: r.location, model: r.model, features: r.features };
+      for (const m of metrics) row[m] = Math.max(row[m] ?? -Infinity, Number(r[m]));
+      best.set(group, row);
+    }
+    return [...best.values()];
+  },
+});
+
+(() => {
+  const root = document.getElementById('wb');
+  const LOCS = ['hel', 'katowice', 'suwalki'];
+  const LOC = { hel: 'Hel', katowice: 'Katowice', suwalki: 'Suwałki' };
+  const MODELS = ['xgb', 'gbt', 'rf', 'logreg', 'knn'];
+  const PREPS = ['raw', 'scaled', 'binned_width', 'binned_freq'];
+  const FEAT = { base: 'bazowe', wavelet: 'bazowe + falkowe' };
+  const CLASSES = ['Bf0-1', 'Bf2', 'Bf3', 'Bf4', 'Bf5', 'Bf6+'];
+  const f3 = d3.format('.3f');
+  const pct1 = d3.format('.1%');
+  const pct0 = d3.format('.0%');
+  const count = d3.format(',');
+  const METRIC = {
+    kappa: { label: 'Kappa Cohena', short: 'kappa', fmt: f3 },
+    accuracy: { label: 'Trafność (accuracy)', short: 'trafność', fmt: pct1 },
+    macro_f1: { label: 'Macro F1', short: 'macro F1', fmt: f3 },
+    auc_ovr: { label: 'AUC (one-vs-rest)', short: 'AUC', fmt: f3 },
+  };
+  const FMT = { ...Object.fromEntries(Object.entries(METRIC).map(([k, m]) => [k, m.fmt])), kappa_fold_std: f3 };
+  const SUMMARY_NUM = ['n', 'accuracy', 'kappa', 'macro_f1', 'weighted_f1', 'macro_recall', 'macro_precision', 'auc_ovr', 'zero_r', 'accuracy_fold_std', 'kappa_fold_std', 'macro_f1_fold_std', 'lift_over_zero_r'];
+  const DEFAULTS = { location: 'suwalki', features: 'wavelet', metric: 'kappa', run: null };
+
+  const params = () => {
+    const p = { ...DEFAULTS, ...dash.params() };
+    if (!LOCS.includes(p.location)) p.location = DEFAULTS.location;
+    if (!FEAT[p.features]) p.features = DEFAULTS.features;
+    if (!METRIC[p.metric]) p.metric = DEFAULTS.metric;
+    return p;
+  };
+  const enc = (s) => String(s).replace(/%/g, '%25').replace(/&/g, '%26').replace(/=/g, '%3D');
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+  const mark = (node, field, run) => {
+    node.dataset.source = 'summary';
+    node.dataset.field = field;
+    node.dataset.where = 'run=' + enc(run);
+    return node;
+  };
+
+  const memo = new WeakMap();
+  const rowsOf = (id, numeric) => {
+    const d = dash.data(id);
+    if (d.status !== 'ok' || !Array.isArray(d.data)) return null;
+    let rows = memo.get(d.data);
+    if (!rows) {
+      rows = d.data.map((r) => {
+        const o = { ...r };
+        for (const c of numeric) o[c] = Number(r[c]);
+        return o;
+      });
+      memo.set(d.data, rows);
+    }
+    return rows;
+  };
+
+  const failNode = () => {
+    const n = el('div', 'wb-fail');
+    n.append(el('i'), el('span', null, 'Nie udało się wczytać'));
+    return n;
+  };
+  const ready = (box, d) => {
+    if (d.status === 'ok') {
+      box.classList.remove('dash-skeleton');
+      return true;
+    }
+    box.replaceChildren();
+    if (d.status === 'loading') box.classList.add('dash-skeleton');
+    else {
+      box.classList.remove('dash-skeleton');
+      box.append(failNode());
+    }
+    return false;
+  };
+
+  const probe = el('span');
+  probe.hidden = true;
+  root.append(probe);
+  const rgb = (c) => {
+    probe.style.color = '';
+    probe.style.color = c;
+    return getComputedStyle(probe).color;
+  };
+  const palette = () => {
+    const lo = rgb('var(--color-panel)');
+    const hi = rgb(dash.colors[0]);
+    const interp = d3.interpolateRgb(lo, hi);
+    const fgL = d3.lab(rgb('var(--color-fg)')).l;
+    const bgL = d3.lab(rgb('var(--color-bg)')).l;
+    return {
+      fill: (t) => interp(0.06 + 0.94 * Math.max(0, Math.min(1, t))),
+      ink: (c) => {
+        const L = d3.lab(c).l;
+        return Math.abs(fgL - L) >= Math.abs(bgL - L) ? 'var(--color-fg)' : 'var(--color-bg)';
+      },
+      lo: interp(0.06),
+      hi,
+    };
+  };
+
+  const tipFor = (card) => {
+    let t = card.querySelector(':scope > .wb-tip');
+    if (!t) {
+      t = el('div', 'wb-tip');
+      t.hidden = true;
+      card.append(t);
+    }
+    return t;
+  };
+  const showTip = (card, pt, title, lines) => {
+    const t = tipFor(card);
+    t.replaceChildren(el('div', 'wb-tip-title', title));
+    for (const [color, name, value] of lines) {
+      const row = el('div', 'wb-tip-row');
+      if (color) {
+        const sw = el('i', 'wb-sw');
+        sw.style.background = color;
+        row.append(sw);
+      }
+      row.append(el('span', 'wb-tip-name', name), el('span', 'wb-tip-val', value));
+      t.append(row);
+    }
+    t.hidden = false;
+    const cb = card.getBoundingClientRect();
+    const tw = t.offsetWidth;
+    const th = t.offsetHeight;
+    let x = pt.clientX - cb.left + 14;
+    let y = pt.clientY - cb.top + 14;
+    if (x + tw > cb.width - 4) x = pt.clientX - cb.left - tw - 14;
+    if (y + th > cb.height - 4) y = pt.clientY - cb.top - th - 14;
+    t.style.left = Math.max(4, x) + 'px';
+    t.style.top = Math.max(4, y) + 'px';
+  };
+  const hideTip = (card) => {
+    const t = card.querySelector(':scope > .wb-tip');
+    if (t) t.hidden = true;
+  };
+  const centerOf = (node) => {
+    const r = node.getBoundingClientRect();
+    return { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+  };
+
+  const pool = (rows, p) => rows.filter((r) => r.location === p.location && r.features === p.features);
+  const selected = (rows, p) => {
+    const candidates = pool(rows, p);
+    return candidates.find((r) => r.run === p.run) ?? d3.greatest(candidates, (r) => r[p.metric]);
+  };
+  const runWith = (p, changes) => {
+    if (!p.run) return null;
+    const [location, model, preprocessing, features] = p.run.split('|');
+    const next = { location, model, preprocessing, features, ...changes };
+    return [next.location, next.model, next.preprocessing, next.features].join('|');
+  };
+  const pick = (run) => dash.setParams({ run });
+
+  // Filters
+  const locSel = document.getElementById('wb-loc');
+  locSel.replaceChildren(...LOCS.map((l) => new Option(LOC[l], l)));
+  locSel.addEventListener('change', () => dash.setParams({ location: locSel.value, run: null }));
+  const metSel = document.getElementById('wb-metric');
+  metSel.replaceChildren(...Object.entries(METRIC).map(([k, m]) => new Option(m.label, k)));
+  metSel.addEventListener('change', () => dash.setParams({ metric: metSel.value }));
+  const featButtons = [...document.querySelectorAll('.wb-seg [data-feat]')];
+  for (const b of featButtons) {
+    b.addEventListener('click', () => {
+      const p = params();
+      dash.setParams({ features: b.dataset.feat, run: runWith(p, { features: b.dataset.feat }) });
+    });
+  }
+
+  // Headline: takeaway and best-per-location tiles
+  const takeaway = document.getElementById('takeaway');
+  const drawTakeaway = (rows, p) => {
+    if (!rows) {
+      takeaway.replaceChildren();
+      takeaway.classList.toggle('dash-skeleton', dash.data('summary').status === 'loading');
+      return;
+    }
+    takeaway.classList.remove('dash-skeleton');
+    const best = d3.greatest(pool(rows, p), (r) => r[p.metric]);
+    if (!best) return takeaway.replaceChildren();
+    const second = p.metric === 'accuracy' ? 'kappa' : 'accuracy';
+    const b = (t) => el('b', null, t);
+    const val = (field) => mark(el('b', null, FMT[field](best[field])), field, best.run);
+    takeaway.replaceChildren(
+      'W lokalizacji ', b(LOC[p.location]), ` na cechach „${FEAT[p.features]}” najlepiej wypada `,
+      b(best.model), ' z preprocessingiem ', b(best.preprocessing), ': ',
+      `${METRIC[p.metric].short} `, val(p.metric), `, ${METRIC[second].short} `, val(second),
+      '. Zgadywanie zawsze najczęstszej klasy (Zero-R) daje trafność ',
+      mark(el('span', null, pct1(best.zero_r)), 'zero_r', best.run), '.',
+    );
+  };
+
+  const tiles = document.getElementById('best');
+  const drawTiles = (rows, p) => {
+    if (!ready(tiles, dash.data('summary'))) return;
+    tiles.replaceChildren();
+    for (const loc of LOCS) {
+      const best = d3.greatest(rows.filter((r) => r.location === loc && r.features === p.features), (r) => r[p.metric]);
+      if (!best) continue;
+      const t = el('button', 'wb-tile');
+      t.type = 'button';
+      t.setAttribute('aria-pressed', String(loc === p.location));
+      t.addEventListener('click', () => dash.setParams({ location: loc, run: null }));
+      const big = mark(el('span', 'wb-big', METRIC[p.metric].fmt(best[p.metric])), p.metric, best.run);
+      const base = el('span', 'wb-tile-base');
+      base.append(
+        'Zero-R ', mark(el('span', null, pct1(best.zero_r)), 'zero_r', best.run),
+        ' · przewaga trafności ', mark(el('span', null, d3.format('+.1%')(best.lift_over_zero_r)), 'lift_over_zero_r', best.run),
+      );
+      t.append(
+        el('span', 'wb-tile-loc', `${LOC[loc]} · najlepszy wg: ${METRIC[p.metric].short}`),
+        big,
+        el('span', 'wb-tile-run', `${best.model} · ${best.preprocessing}`),
+        base,
+      );
+      tiles.append(t);
+    }
+  };
+
+  // Ranking table
+  const rankBody = document.getElementById('rank-body');
+  const rankTable = document.getElementById('rank-table');
+  let sortKey = null;
+  let sortDir = -1;
+  rankTable.querySelector('thead').addEventListener('click', (event) => {
+    const btn = event.target.closest('button[data-sort]');
+    if (!btn) return;
+    const key = btn.dataset.sort;
+    const current = sortKey ?? params().metric;
+    if (key === current) sortDir = -sortDir;
+    else sortDir = key === 'model' || key === 'preprocessing' || key === 'kappa_fold_std' ? 1 : -1;
+    sortKey = key;
+    draw();
+  });
+  rankBody.addEventListener('click', (event) => {
+    const tr = event.target.closest('tr[data-key]');
+    if (tr) pick(tr.dataset.key);
+  });
+  rankBody.addEventListener('keydown', (event) => {
+    const tr = event.target.closest('tr[data-key]');
+    if (tr && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      pick(tr.dataset.key);
+    }
+  });
+  const drawTable = (rows, p, sel) => {
+    const d = dash.data('summary');
+    if (d.status !== 'ok') {
+      rankBody.replaceChildren();
+      rankBody.classList.toggle('dash-skeleton', d.status === 'loading');
+      if (d.status !== 'loading') {
+        const tr = el('tr');
+        const td = el('td');
+        td.colSpan = 7;
+        td.append(failNode());
+        tr.append(td);
+        rankBody.append(tr);
+      }
+      return;
+    }
+    rankBody.classList.remove('dash-skeleton');
+    const key = sortKey ?? p.metric;
+    const list = pool(rows, p).sort((a, b) => {
+      const va = a[key];
+      const vb = b[key];
+      return (typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb))) * sortDir;
+    });
+    for (const th of rankTable.querySelectorAll('th')) {
+      const k = th.querySelector('button').dataset.sort;
+      if (k === key) th.setAttribute('aria-sort', sortDir > 0 ? 'ascending' : 'descending');
+      else th.removeAttribute('aria-sort');
+    }
+    const max = d3.max(list, (r) => r[p.metric]) || 1;
+    const color = dash.colors[0];
+    rankBody.replaceChildren(...list.map((r) => {
+      const tr = el('tr');
+      tr.dataset.key = r.run;
+      tr.tabIndex = 0;
+      tr.setAttribute('aria-selected', String(sel && r.run === sel.run));
+      tr.append(el('td', null, r.model), el('td', null, r.preprocessing));
+      for (const k of ['kappa', 'accuracy', 'macro_f1', 'auc_ovr', 'kappa_fold_std']) {
+        const td = el('td', 'num');
+        if (k === p.metric) {
+          const wrap = el('span', 'wb-cellbar');
+          const track = el('span', 'track');
+          const bar = el('i');
+          bar.style.width = `${Math.max(2, (r[k] / max) * 100)}%`;
+          bar.style.background = color;
+          track.append(bar);
+          wrap.append(track, el('span', null, FMT[k](r[k])));
+          td.append(wrap);
+        } else td.textContent = FMT[k](r[k]);
+        tr.append(td);
+      }
+      return tr;
+    }));
+    document.getElementById('rank-note').textContent =
+      `${LOC[p.location]}, cechy „${FEAT[p.features]}”. Pasek przy kolumnie „${METRIC[p.metric].short}” pokazuje wybraną metrykę. Kliknij wiersz, żeby zobaczyć szczegóły przebiegu w kartach niżej.`;
+  };
+
+  // Model × preprocessing heatmap
+  const heat = document.getElementById('heat');
+  const heatCard = document.getElementById('heatmap');
+  const drawHeat = (rows, p, sel) => {
+    if (!ready(heat, dash.data('summary'))) return;
+    const list = pool(rows, p);
+    const byKey = new Map(list.map((r) => [`${r.model}|${r.preprocessing}`, r]));
+    const ext = d3.extent(list, (r) => r[p.metric]);
+    const pal = palette();
+    const t = (v) => (ext[1] > ext[0] ? (v - ext[0]) / (ext[1] - ext[0]) : 1);
+    const fmt = METRIC[p.metric].fmt;
+    heat.replaceChildren(el('div'), ...PREPS.map((pp) => el('div', 'wb-heat-h', pp)));
+    for (const m of MODELS) {
+      heat.append(el('div', 'wb-heat-r', m));
+      for (const pp of PREPS) {
+        const r = byKey.get(`${m}|${pp}`);
+        if (!r) {
+          heat.append(el('div'));
+          continue;
+        }
+        const fill = pal.fill(t(r[p.metric]));
+        const btn = el('button', null, fmt(r[p.metric]));
+        btn.type = 'button';
+        btn.style.background = fill;
+        btn.style.color = pal.ink(fill);
+        btn.setAttribute('aria-pressed', String(sel && r.run === sel.run));
+        btn.setAttribute('aria-label', `${m}, ${pp}: ${METRIC[p.metric].short} ${fmt(r[p.metric])}`);
+        btn.addEventListener('click', () => pick(r.run));
+        const tip = (pt) => showTip(heatCard, pt, `${m} · ${pp}`, [
+          [null, METRIC.kappa.short, f3(r.kappa)],
+          [null, METRIC.accuracy.short, pct1(r.accuracy)],
+          [null, METRIC.macro_f1.short, f3(r.macro_f1)],
+          [null, 'σ kappy między latami', f3(r.kappa_fold_std)],
+        ]);
+        btn.addEventListener('pointermove', tip);
+        btn.addEventListener('focus', () => tip(centerOf(btn)));
+        btn.addEventListener('pointerleave', () => hideTip(heatCard));
+        btn.addEventListener('blur', () => hideTip(heatCard));
+        heat.append(btn);
+      }
+    }
+    const scale = el('div', 'wb-scale');
+    const bar = el('i');
+    bar.style.background = `linear-gradient(to right, ${pal.lo}, ${pal.hi})`;
+    scale.append(el('span', null, fmt(ext[0])), bar, el('span', null, fmt(ext[1])));
+    heat.append(scale);
+  };
+
+  // Base vs wavelet dumbbells
+  const dumb = document.getElementById('dumb');
+  const dumbCard = document.getElementById('wavelet');
+  const legend = (box, items) => box.replaceChildren(...items.map(([color, label]) => {
+    const s = el('span');
+    const sw = el('i', 'wb-sw');
+    sw.style.background = color;
+    s.append(sw, label);
+    return s;
+  }));
+  const textWidth = (svg, texts, cls) => {
+    const g = svg.append('g').attr('class', cls || null);
+    let w = 0;
+    for (const t of texts) w = Math.max(w, g.append('text').text(t).node().getComputedTextLength());
+    g.remove();
+    return w;
+  };
+  const drawDumb = (p) => {
+    const cBase = dash.colors[0];
+    const cWav = dash.colors[1];
+    legend(document.getElementById('dumb-legend'), [[cBase, 'bazowe'], [cWav, 'bazowe + falkowe']]);
+    const d = dash.data('best_by_features');
+    if (!ready(dumb, d)) return;
+    const rows = d.data;
+    const m = p.metric;
+    const fmt = METRIC[m].fmt;
+    const [lo, hi] = d3.extent(rows, (r) => r[m]);
+    const pad = (hi - lo) * 0.06 || 0.01;
+    const domain = [lo - pad, hi + pad];
+    dumb.replaceChildren();
+    const rowH = 30;
+    for (const loc of LOCS) {
+      const panel = el('div', 'wb-panel');
+      panel.append(el('h3', null, LOC[loc]));
+      dumb.append(panel);
+      const width = Math.max(200, panel.clientWidth);
+      const svg = d3.select(panel).append('svg').attr('class', 'wb-svg').attr('width', '100%');
+      const ml = textWidth(svg, MODELS) + 10;
+      const mr = 8;
+      const height = MODELS.length * rowH + 26;
+      svg.attr('viewBox', `0 0 ${width} ${height}`).attr('height', height);
+      const x = d3.scaleLinear(domain, [ml, width - mr]);
+      const y = d3.scalePoint(MODELS, [rowH / 2, MODELS.length * rowH - rowH / 2]);
+      const tickCount = width < 280 ? 3 : 4;
+      svg.append('g').attr('class', 'grid').selectAll('line').data(x.ticks(tickCount)).join('line')
+        .attr('x1', (v) => x(v)).attr('x2', (v) => x(v)).attr('y1', 0).attr('y2', MODELS.length * rowH);
+      svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${MODELS.length * rowH})`)
+        .call(d3.axisBottom(x).ticks(tickCount).tickFormat(fmt).tickSizeOuter(0))
+        .attr('font-size', null).attr('font-family', null);
+      const byModel = d3.group(rows.filter((r) => r.location === loc), (r) => r.model);
+      for (const model of MODELS) {
+        const g = byModel.get(model) ?? [];
+        const base = g.find((r) => r.features === 'base');
+        const wav = g.find((r) => r.features === 'wavelet');
+        const cy = y(model);
+        const on = loc === p.location;
+        svg.append('text').attr('x', ml - 8).attr('y', cy).attr('dy', '0.32em').attr('text-anchor', 'end')
+          .attr('class', on && sel_model === model ? 'lab-on' : null).text(model);
+        if (base && wav) {
+          svg.append('line').attr('x1', x(base[m])).attr('x2', x(wav[m])).attr('y1', cy).attr('y2', cy)
+            .attr('stroke', 'var(--cds-chart-axis)').attr('stroke-width', 2).attr('stroke-linecap', 'round');
+        }
+        for (const [r, c] of [[base, cBase], [wav, cWav]]) {
+          if (!r) continue;
+          svg.append('circle').attr('cx', x(r[m])).attr('cy', cy).attr('r', 5)
+            .attr('fill', c).attr('stroke', 'var(--color-panel)').attr('stroke-width', 2);
+        }
+        const lines = [];
+        if (base) lines.push([cBase, 'bazowe', fmt(base[m])]);
+        if (wav) lines.push([cWav, 'bazowe + falkowe', fmt(wav[m])]);
+        if (base && wav) lines.push([null, 'różnica', d3.format(m === 'accuracy' ? '+.1%' : '+.3f')(wav[m] - base[m])]);
+        svg.append('rect').attr('x', 0).attr('y', cy - rowH / 2).attr('width', width).attr('height', rowH)
+          .attr('fill', 'transparent')
+          .on('pointermove', (event) => showTip(dumbCard, event, `${LOC[loc]} · ${model}`, lines))
+          .on('pointerleave', () => hideTip(dumbCard));
+      }
+    }
+    document.getElementById('dumb-note').textContent =
+      `${METRIC[m].label}: najlepszy wariant preprocessingu każdego modelu, bez cech falkowych i z nimi. Wspólna skala dla wszystkich lokalizacji.`;
+  };
+  let sel_model = null;
+
+  // Per-year stability
+  const foldBox = document.getElementById('fold-chart');
+  const foldCard = document.getElementById('years');
+  const drawFolds = (sel) => {
+    const d = sel ? dash.data('folds') : dash.data('summary');
+    if (!ready(foldBox, d)) return;
+    const rows = rowsOf('folds', ['fold', 'year', 'kappa']);
+    if (!rows) return;
+    const list = rows.filter((r) => r.location === sel.location && r.features === sel.features && r.preprocessing === sel.preprocessing);
+    const series = MODELS.map((model) => ({ model, points: list.filter((r) => r.model === model).sort((a, b) => a.year - b.year) }))
+      .filter((s) => s.points.length);
+    const years = [...new Set(list.map((r) => r.year))].sort((a, b) => a - b);
+    foldBox.replaceChildren();
+    document.getElementById('fold-note').textContent =
+      `Kappa w każdym roku testowym: ${LOC[sel.location]}, cechy „${FEAT[sel.features]}”, preprocessing ${sel.preprocessing}. Wyróżniony model: ${sel.model}.`;
+    if (!series.length) return;
+    const width = Math.max(260, foldBox.clientWidth);
+    const height = 256;
+    const svg = d3.select(foldBox).append('svg').attr('class', 'wb-svg').attr('width', '100%')
+      .attr('viewBox', `0 0 ${width} ${height}`).attr('height', height);
+    const [lo, hi] = d3.extent(list, (r) => r.kappa);
+    const y0 = d3.scaleLinear([lo, hi], [0, 1]).nice(5);
+    const ticks = y0.ticks(5);
+    const ml = textWidth(svg, ticks.map(f3)) + 10;
+    const mr = textWidth(svg, series.map((s) => s.model), 'lab-on') + 14;
+    const mt = 8;
+    const mb = 24;
+    const y = d3.scaleLinear(y0.domain(), [height - mb, mt]);
+    const x = d3.scaleLinear(d3.extent(years), [ml + 6, width - mr]);
+    const tickYears = (width - ml - mr) / years.length < 38 ? years.filter((_, i) => i % 2 === 0) : years;
+    svg.append('g').attr('class', 'grid').selectAll('line').data(ticks).join('line')
+      .attr('x1', ml).attr('x2', width - mr).attr('y1', (v) => y(v)).attr('y2', (v) => y(v));
+    svg.append('g').attr('class', 'axis').attr('transform', `translate(${ml},0)`)
+      .call(d3.axisLeft(y).tickValues(ticks).tickFormat(f3).tickSize(0).tickPadding(6))
+      .attr('font-size', null).attr('font-family', null).call((g) => g.select('.domain').remove());
+    svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${height - mb})`)
+      .call(d3.axisBottom(x).tickValues(tickYears).tickFormat(d3.format('d')).tickSizeOuter(0))
+      .attr('font-size', null).attr('font-family', null);
+    const line = d3.line().x((r) => x(r.year)).y((r) => y(r.kappa));
+    const ordered = [...series.filter((s) => s.model !== sel.model), ...series.filter((s) => s.model === sel.model)];
+    const colorOf = (s) => (s.model === sel.model ? dash.colors[0] : 'var(--cds-chart-muted)');
+    for (const s of ordered) {
+      const on = s.model === sel.model;
+      svg.append('path').attr('d', line(s.points)).attr('fill', 'none').attr('stroke', colorOf(s))
+        .attr('stroke-width', on ? 2 : 1.5).attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round');
+      if (on) {
+        svg.append('g').selectAll('circle').data(s.points).join('circle')
+          .attr('cx', (r) => x(r.year)).attr('cy', (r) => y(r.kappa)).attr('r', 3).attr('fill', colorOf(s));
+      }
+    }
+    // End labels, nudged apart so they never touch
+    const labels = series.map((s) => ({ s, y: y(s.points[s.points.length - 1].kappa) })).sort((a, b) => a.y - b.y);
+    const gap = 13;
+    for (let i = 1; i < labels.length; i++) labels[i].y = Math.max(labels[i].y, labels[i - 1].y + gap);
+    const overflow = labels.length ? labels[labels.length - 1].y - (height - mb) : 0;
+    if (overflow > 0) for (const l of labels) l.y -= overflow;
+    for (let i = labels.length - 2; i >= 0; i--) labels[i].y = Math.min(labels[i].y, labels[i + 1].y - gap);
+    for (const l of labels) {
+      svg.append('text').attr('x', width - mr + 6).attr('y', l.y).attr('dy', '0.32em')
+        .attr('class', l.s.model === sel.model ? 'lab-on' : null).text(l.s.model);
+    }
+    // Hover: rule, dots and a tooltip for the nearest year
+    const hover = svg.append('g').style('display', 'none');
+    const rule = hover.append('line').attr('y1', mt).attr('y2', height - mb).attr('stroke', 'var(--cds-chart-reference)');
+    const dots = hover.selectAll('circle').data(series).join('circle').attr('r', 4)
+      .attr('fill', colorOf).attr('stroke', 'var(--color-panel)').attr('stroke-width', 2);
+    svg.append('rect').attr('x', ml).attr('y', mt).attr('width', width - mr - ml).attr('height', height - mt - mb)
+      .attr('fill', 'transparent')
+      .on('pointermove', (event) => {
+        const [px] = d3.pointer(event);
+        const year = years[d3.leastIndex(years, (yr) => Math.abs(x(yr) - px))];
+        hover.style('display', null);
+        rule.attr('x1', x(year)).attr('x2', x(year));
+        dots.attr('cx', x(year)).attr('cy', (s) => {
+          const pt = s.points.find((r) => r.year === year);
+          return pt ? y(pt.kappa) : -99;
+        });
+        const lines = series.map((s) => [s, s.points.find((r) => r.year === year)]).filter(([, pt]) => pt)
+          .sort((a, b) => b[1].kappa - a[1].kappa)
+          .map(([s, pt]) => [colorOf(s), s.model, f3(pt.kappa)]);
+        showTip(foldCard, event, `Rok testowy ${year}`, lines);
+      })
+      .on('pointerleave', () => {
+        hover.style('display', 'none');
+        hideTip(foldCard);
+      });
+  };
+
+  // Per-class recall and precision
+  const clsBox = document.getElementById('cls');
+  const clsCard = document.getElementById('classes');
+  const drawClasses = (sel) => {
+    const cR = dash.colors[0];
+    const cP = dash.colors[1];
+    legend(document.getElementById('cls-legend'), [[cR, 'recall'], [cP, 'precyzja']]);
+    const d = sel ? dash.data('per_class') : dash.data('summary');
+    if (!ready(clsBox, d)) return;
+    const rows = rowsOf('per_class', ['support', 'share', 'precision', 'recall', 'f1']);
+    if (!rows) return;
+    const list = rows.filter((r) => r.run === sel.run)
+      .sort((a, b) => CLASSES.indexOf(a.label) - CLASSES.indexOf(b.label));
+    document.getElementById('cls-note').textContent =
+      `${sel.model} · ${sel.preprocessing} · ${LOC[sel.location]}, cechy „${FEAT[sel.features]}”. Recall: jaka część godzin danej klasy została rozpoznana. Precyzja: jaka część wskazań tej klasy była trafna.`;
+    clsBox.replaceChildren(...list.map((r) => {
+      const row = el('div', 'wb-cls-row');
+      const lab = el('div', 'wb-cls-lab');
+      lab.append(el('b', null, r.label), el('span', null, `${pct1(r.share)} godzin`));
+      const bars = el('div', 'wb-cls-bars');
+      for (const [v, c] of [[r.recall, cR], [r.precision, cP]]) {
+        const bar = el('div', 'wb-bar');
+        const track = el('div', 'track');
+        const fill = el('i');
+        fill.style.width = `${v * 100}%`;
+        fill.style.background = c;
+        track.append(fill);
+        bar.append(track, el('span', null, pct0(v)));
+        bars.append(bar);
+      }
+      row.append(lab, bars);
+      row.addEventListener('pointermove', (event) => showTip(clsCard, event, `Klasa ${r.label}`, [
+        [null, 'godzin w danych', count(r.support)],
+        [cR, 'recall', pct1(r.recall)],
+        [cP, 'precyzja', pct1(r.precision)],
+        [null, 'F1', f3(r.f1)],
+      ]));
+      row.addEventListener('pointerleave', () => hideTip(clsCard));
+      return row;
+    }));
+  };
+
+  // Confusion matrix
+  const confBox = document.getElementById('conf');
+  const confCard = document.getElementById('confusion');
+  const drawConfusion = (sel) => {
+    const d = sel ? dash.data('confusion') : dash.data('summary');
+    if (!ready(confBox, d)) return;
+    const rows = rowsOf('confusion', ['n', 'share_of_true']);
+    if (!rows) return;
+    const list = rows.filter((r) => r.run === sel.run);
+    const cell = new Map(list.map((r) => [`${r.y_true}|${r.y_pred}`, r]));
+    const max = d3.max(list, (r) => r.share_of_true) || 1;
+    const pal = palette();
+    document.getElementById('conf-note').textContent =
+      `${sel.model} · ${sel.preprocessing} · ${LOC[sel.location]}, cechy „${FEAT[sel.features]}”. Wiersze to klasa rzeczywista, kolumny to klasa przewidziana. Procent to udział godzin danej klasy rzeczywistej.`;
+    confBox.replaceChildren(el('div'), el('div', 'wb-axis-t', 'przewidziana →'), el('div', 'wb-conf-h', 'rzeczywista ↓'), ...CLASSES.map((c) => el('div', 'wb-conf-h', c)));
+    for (const t of CLASSES) {
+      confBox.append(el('div', 'wb-conf-r', t));
+      for (const pr of CLASSES) {
+        const r = cell.get(`${t}|${pr}`);
+        const share = r ? r.share_of_true : 0;
+        const fill = pal.fill(share / max);
+        const c = el('div', 'wb-conf-c' + (t === pr ? ' diag' : ''), r ? pct0(share) : '');
+        c.style.background = fill;
+        c.style.color = pal.ink(fill);
+        c.addEventListener('pointermove', (event) => showTip(confCard, event, `Rzeczywista ${t} → przewidziana ${pr}`, [
+          [null, 'godzin', count(r ? r.n : 0)],
+          [null, `udział godzin ${t}`, pct1(share)],
+        ]));
+        c.addEventListener('pointerleave', () => hideTip(confCard));
+        confBox.append(c);
+      }
+    }
+  };
+
+  const draw = () => {
+    const p = params();
+    locSel.value = p.location;
+    metSel.value = p.metric;
+    for (const b of featButtons) b.setAttribute('aria-pressed', String(b.dataset.feat === p.features));
+    const summary = rowsOf('summary', SUMMARY_NUM);
+    const sel = summary ? selected(summary, p) : null;
+    sel_model = sel && sel.location === p.location ? sel.model : null;
+    drawTakeaway(summary, p);
+    drawTiles(summary, p);
+    drawTable(summary, p, sel);
+    drawHeat(summary, p, sel);
+    drawDumb(p);
+    drawFolds(sel);
+    drawClasses(sel);
+    drawConfusion(sel);
+  };
+
+  dash.onData(draw);
+  const dark = window.matchMedia('(prefers-color-scheme: dark)');
+  if (dark.addEventListener) dark.addEventListener('change', draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+})();
+</script>

@@ -35,7 +35,7 @@ def _write(frame: pd.DataFrame, path: Path) -> Path:
         return target
 
 
-def run_one(dataset, model_name, preprocessing, splitter_name, horizon, outdir) -> Path:
+def run_one(dataset, model_name, preprocessing, features, splitter_name, horizon, outdir) -> Path:
     splitter = build_splitter(splitter_name, dataset.years)
     inner = build_splitter(splitter_name, dataset.years)
     template = build_model(model_name, dataset.X, preprocessing, cv=inner)
@@ -68,10 +68,15 @@ def run_one(dataset, model_name, preprocessing, splitter_name, horizon, outdir) 
     frame.insert(0, "location", dataset.location)
     frame.insert(1, "model", model_name)
     frame.insert(2, "preprocessing", preprocessing)
-    frame.insert(3, "horizon", horizon)
-    frame.insert(4, "splitter", splitter_name)
+    frame.insert(3, "features", features)
+    frame.insert(4, "horizon", horizon)
+    frame.insert(5, "splitter", splitter_name)
 
-    stem = f"{dataset.location}__{model_name}__{preprocessing}__h{horizon}__{splitter_name}"
+    stem = (
+        f"{dataset.location}__{model_name}__{preprocessing}"
+        f"__{features}__h{horizon}__{splitter_name}"
+    )
+
     path = _write(frame, outdir / stem)
     elapsed = time.perf_counter() - started
     accuracy = float((frame["y_pred"] == frame["y_true"]).mean())
@@ -95,31 +100,38 @@ def main() -> None:
             config["locations"],
             config["models"],
             config["preprocessing"],
+            config.get("features", ["base"]),
             config["horizons"],
             config["splitters"],
         )
     )
     print(f"{len(grid)} runs -> {outdir}")
 
-    cache: dict[tuple[str, int], object] = {}
+    cache: dict[tuple[str, str, int], object] = {}
     manifest = []
-    for location, model_name, preprocessing, horizon, splitter_name in grid:
-        stem = f"{location}__{model_name}__{preprocessing}__h{horizon}__{splitter_name}"
+    for location, model_name, preprocessing, features, horizon, splitter_name in grid:
+        stem = (
+            f"{location}__{model_name}__{preprocessing}"
+            f"__{features}__h{horizon}__{splitter_name}"
+        )
         existing = list(outdir.glob(stem + ".*"))
         if existing and not args.overwrite:
             print(f"  {stem}  skipped")
             continue
 
-        key = (location, horizon)
+        key = (location, features, horizon)
         if key not in cache:
             cache[key] = load_location(
                 data_dir / f"{location}.csv",
                 source=config.get("source", "prepared"),
                 location=location,
                 add_tendency=config.get("add_tendency", True),
+                features=features,
                 horizon=horizon,
             )
-        path = run_one(cache[key], model_name, preprocessing, splitter_name, horizon, outdir)
+        path = run_one(
+            cache[key], model_name, preprocessing, features, splitter_name, horizon, outdir
+        )
         manifest.append({"stem": stem, "file": path.name})
 
     if manifest:

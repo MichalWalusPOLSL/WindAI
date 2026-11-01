@@ -17,8 +17,8 @@ models:
   - logreg
   - xgb
 
-preprocessing:
-  - raw
+preprocessing: [raw, scaled, binned_width, binned_freq]
+features: [base]
 
 horizons:
   - 0

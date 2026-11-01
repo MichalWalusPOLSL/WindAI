@@ -20,7 +20,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-ID_COLUMNS = ["location", "model", "preprocessing", "horizon", "splitter"]
+ID_COLUMNS = ["location", "model", "preprocessing", "features", "horizon", "splitter"]
 
 
 def load_predictions(directory: str | Path) -> pd.DataFrame:

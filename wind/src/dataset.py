@@ -11,9 +11,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from pyexpat import features
 
 import numpy as np
 import pandas as pd
+import pywt
 
 TIME = "time"
 LABEL = "beaufort"
@@ -35,6 +37,10 @@ PBL = "boundary_layer_height (m)"
 PRESSURE_LAGS = (3, 6, 24)
 PBL_LAGS = (3,)
 ENCODINGS = ("utf-8", "cp1252")
+WAVELET = "db4"
+WAVELET_LEVEL = 4
+WAVELET_SOURCES = (PRESSURE, PBL)
+FEATURE_SETS = ("base", "wavelet")
 
 
 @dataclass(frozen=True)
@@ -100,6 +106,37 @@ def _regular_hours(timestamps: pd.Series, location: str) -> pd.Series:
     print(f"  note: {location}: rebuilt {irregular} DST-mangled timestamps", flush=True)
     return pd.Series(pd.date_range(timestamps.iloc[0], periods=len(timestamps), freq="h"))
 
+def _swt(values: np.ndarray) -> np.ndarray:
+    size = 2 ** WAVELET_LEVEL
+    pad = (size - len(values) % size) % size
+    padded = np.pad(values, (0, pad), mode="edge")
+    coefficients = pywt.swt(padded, WAVELET, level=WAVELET_LEVEL, trim_approx=True, norm=True)
+    return np.column_stack([c[: len(values)] for c in coefficients])
+
+
+def _wavelet_bands(frame: pd.DataFrame, timestamps: pd.Series) -> pd.DataFrame:
+    """Stationary wavelet bands of the predictor series, one segment per year.
+
+    Decomposing the target would leak it back in shredded form, so only
+    predictors are transformed. Each calendar year is decomposed on its own so
+    that no fold contributes to another fold's features.
+    """
+    missing = [c for c in WAVELET_SOURCES if c not in frame]
+    if missing:
+        raise KeyError(f"cannot build wavelet bands, missing: {missing}")
+
+    years = timestamps.dt.year.to_numpy()
+    out = {}
+    for column in WAVELET_SOURCES:
+        values = frame[column].to_numpy(dtype=float)
+        bands = np.zeros((len(values), WAVELET_LEVEL + 1))
+        for year in np.unique(years):
+            mask = years == year
+            bands[mask] = _swt(values[mask])
+        short = column.split(" ")[0]
+        for i in range(WAVELET_LEVEL + 1):
+            out[f"{short}_swt{i}"] = bands[:, i]
+    return pd.DataFrame(out, index=frame.index)
 
 def _finalise(X, y, timestamps, location, horizon) -> Dataset:
     timestamps = _regular_hours(timestamps, location)
@@ -120,6 +157,7 @@ def load_prepared(
     path: str | Path,
     location: str | None = None,
     add_tendency: bool = True,
+    features: str = "base",
     horizon: int = 0,
 ) -> Dataset:
     path = Path(path)
@@ -137,6 +175,9 @@ def load_prepared(
     if add_tendency:
         X = pd.concat([X, _tendency(frame)], axis=1)
 
+    if features == "wavelet":
+        X = pd.concat([X, _wavelet_bands(frame, timestamps)], axis=1)
+
     for column in X.columns:
         if X[column].dtype == object or column in CATEGORICAL:
             X[column] = X[column].astype(str).str.strip().astype("category")
@@ -148,6 +189,7 @@ def load_raw(
     path: str | Path,
     location: str | None = None,
     add_tendency: bool = True,
+    features: str = "base",
     horizon: int = 0,
 ) -> Dataset:
     path = Path(path)
@@ -161,6 +203,10 @@ def load_raw(
     X = frame.drop(columns=[TIME, TARGET])
     if add_tendency:
         X = pd.concat([X, _tendency(frame)], axis=1)
+
+    if features == "wavelet":
+        X = pd.concat([X, _wavelet_bands(frame, timestamps)], axis=1)
+
     X = X.drop(columns=[c for c in DROP_ALWAYS if c in X], errors="ignore")
     for column in CATEGORICAL:
         if column in X:
@@ -173,8 +219,14 @@ LOADERS = {"prepared": load_prepared, "raw": load_raw}
 
 
 def load_location(path, source: str = "prepared", **kwargs) -> Dataset:
+
     if source not in LOADERS:
         raise KeyError(f"unknown source {source!r}; available: {sorted(LOADERS)}")
+    
+    features = kwargs.get("features", "base")
+    if features not in FEATURE_SETS:
+        raise KeyError(f"unknown feature set {features!r}; available: {sorted(FEATURE_SETS)}")
+    
     return LOADERS[source](path, **kwargs)
 
 

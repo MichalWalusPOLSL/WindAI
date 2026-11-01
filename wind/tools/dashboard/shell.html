@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skuteczność modeli siły wiatru</title>
+<style>
+  /* Stand-ins for the tokens the hosted dashboard provides, light then dark. */
+  :root {
+    color-scheme: light;
+    --font-anthropic-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-anthropic-serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    --cds-font-size-caption: .75rem;
+    --cds-font-size-body: .875rem;
+    --cds-font-size-heading: 1rem;
+    --cds-font-size-title: 1.75rem;
+    --cds-font-weight-medium: 600;
+    --cds-gap-xs: .25rem; --cds-gap-sm: .5rem; --cds-gap-md: .75rem; --cds-gap-lg: 1.25rem; --cds-gap-xl: 2rem;
+    --cds-pad-xs: .25rem; --cds-pad-sm: .5rem; --cds-pad-md: .75rem; --cds-pad-lg: 1.25rem; --cds-pad-xl: 2rem;
+    --cds-radius: 8px;
+    --cds-dur-slow: 240ms;
+    --color-bg: #f9f9f7;
+    --color-panel: #fcfcfb;
+    --color-fg: #0b0b0b;
+    --color-fg-muted: #5f5e5a;
+    --color-border-line: #e1e0d9;
+    --color-bad: #d03b3b;
+    --cds-chart-grid: #ebeae4;
+    --cds-chart-axis: #c3c2b7;
+    --cds-chart-muted: #b4b3ab;
+    --cds-chart-reference: #898781;
+    --cds-surface-popover: #ffffff;
+    --cds-border: rgba(11, 11, 11, .12);
+    --cds-shadow-popover: 0 4px 16px rgba(0, 0, 0, .08);
+    --cds-text-secondary: #52514e;
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --color-bg: #0d0d0d;
+      --color-panel: #1a1a19;
+      --color-fg: #f0efec;
+      --color-fg-muted: #a9a89f;
+      --color-border-line: #2c2c2a;
+      --cds-chart-grid: #2c2c2a;
+      --cds-chart-axis: #383835;
+      --cds-chart-muted: #55544f;
+      --cds-surface-popover: #232322;
+      --cds-border: rgba(255, 255, 255, .12);
+      --cds-shadow-popover: 0 4px 16px rgba(0, 0, 0, .5);
+      --cds-text-secondary: #c3c2b7;
+      --series-1: #3987e5;
+      --series-2: #d95926;
+    }
+  }
+  body { margin: 0; background: var(--color-bg); color: var(--color-fg); font-family: var(--font-anthropic-sans); font-size: 14px; }
+  #dash-root { max-width: 1280px; margin-inline: auto; padding: 24px max(16px, 3vw) 32px; }
+  [hidden] { display: none !important; }
+  .dash-skeleton:empty { min-height: 1.2em; border-radius: 6px; background: color-mix(in srgb, var(--color-fg) 6%, transparent); }
+  .dash-footer { margin-top: 24px; font-size: .75rem; color: var(--color-fg-muted); }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+  // Minimal local stand-in for the hosted dashboard's `dash` API: every dataset
+  // is embedded below, so each one is always "ok" and filters only redraw.
+  (() => {
+    const datasets = __DATA__;
+    const calcs = {};
+    const listeners = [];
+    let state = __PARAMS__;
+    const redraw = () => listeners.forEach((fn) => fn());
+    window.dash = {
+      colors: ['var(--series-1)', 'var(--series-2)'],
+      data: (id) => {
+        const data = datasets[id] ?? calcs[id];
+        if (!data) return { status: 'missing', data: [], meta: [], refreshing: false };
+        return { status: 'ok', data, columns: data.length ? Object.keys(data[0]) : [], meta: [], refreshing: false };
+      },
+      calc: (id, { inputs, fn }) => {
+        calcs[id] = fn(...inputs.map((i) => datasets[i] ?? calcs[i]));
+      },
+      onData: (fn) => {
+        listeners.push(fn);
+        fn();
+      },
+      params: () => ({ ...state }),
+      setParams: (changes) => {
+        state = { ...state, ...changes };
+        redraw();
+      },
+      resetParams: () => {
+        state = __PARAMS__;
+        redraw();
+      },
+      setLink: () => {},
+      refresh: () => {},
+    };
+    let width = 0;
+    let frame = 0;
+    new ResizeObserver(([entry]) => {
+      const w = Math.round(entry.contentRect.width);
+      if (w === width) return;
+      width = w;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(redraw);
+    }).observe(document.documentElement);
+  })();
+</script>
+</head>
+<body>
+<div id="dash-root">
+__PAGE__
+<p class="dash-footer">__FOOTER__</p>
+</div>
+</body>
+</html>
